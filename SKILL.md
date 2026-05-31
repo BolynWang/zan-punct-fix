@@ -1,161 +1,134 @@
 ---
 name: zan-punct-fix
 description: >
-  Audits and fixes incorrect Chinese punctuation across every file in a folder
-  — the classic artifact of AI-generated content, where half-width marks like
-  "," "." "?" "!" ":" ";" straight quotes "" and parens () get used where the
-  full-width Chinese forms "，" "。" "？" "！" "：" "；" "“”" "（）" belong. Use
-  this skill whenever the user wants to check, review, clean up, normalize, or
-  fix punctuation (especially Chinese / 中文标点符号) in documents, markdown,
-  code comments, docx, or a whole directory — even if they just say something
-  like "标点符号有问题", "帮我检查标点", "the commas look wrong", or "clean up
-  this folder's punctuation". It scans text, code, and docx files; protects
-  code, URLs, English sentences, and numbers; and reports every change.
+  审查并修正文件夹中所有文件里用错的中文标点 —— 这是 AI 生成内容最典型的毛病：
+  本该用全角的「，。？！：；“”（）」却写成了半角的 , . ? ! : ; "" ()。只要用户想
+  检查、审查、清理、规范、修正文档 / Markdown / 代码注释 / docx / 整个目录里的标点
+  （尤其是中文标点符号），就应当使用本技能 —— 哪怕用户只是随口说「帮我检查标点」
+  「标点符号有问题」「这个文件夹的标点很乱」「把半角逗号改成全角」，或者用英文说
+  「fix the punctuation」「clean up punctuation in this folder」。本技能扫描文本、
+  代码和 docx 文件，自动保护代码、URL、英文句子和数字，并报告每一处改动。
 ---
 
-# Chinese Punctuation Fixer
+# zan-punct-fix —— 中文标点修正
 
-## Why this exists
+## 为什么需要它
 
-AI models routinely emit Chinese prose with **half-width punctuation** because
-the model slips into ASCII out of habit. The reader sees `这是测试,对吧.` instead
-of the correct `这是测试，对吧。`. It looks sloppy and unprofessional. The job of
-this skill is to sweep a file or folder and put the **full-width** marks back
-where Chinese text demands them — without disturbing English, code, URLs, or
-numbers, where half-width marks are correct.
+AI 模型在写中文时经常会顺手敲出**半角标点**，因为模型容易滑回 ASCII 习惯。结果读者
+看到的是 `这是测试,对吧.`，而不是正确的 `这是测试，对吧。`。这显得很粗糙、不专业。
+本技能的职责，就是扫描一个文件或文件夹，把**全角**标点放回到中文该用的位置 —— 同时
+不去动英文、代码、URL、数字，因为那些地方用半角才是对的。
 
-The hard part isn't the replacement, it's the **context**. A comma between two
-digits (`1,000`) is a thousands separator and must stay. A period in `Node.js`
-or `3.14` must stay. A quote that delimits a Python string must stay straight.
-The bundled script encodes these judgments so you don't have to eyeball
-thousands of characters by hand.
+真正的难点不在替换，而在**上下文判断**。数字之间的逗号（`1,000`）是千分位，必须保留；
+`Node.js` 或 `3.14` 里的点必须保留；作为 Python 字符串定界的引号必须保持直引号。
+随附的脚本已经把这些判断都编码进去了，省得你逐字去盯成千上万个字符。
 
-## The workflow
+## 工作流程
 
-Run the script. It does the heavy lifting; you supervise and handle the
-genuinely ambiguous leftovers.
+跑脚本。它负责繁重的批量工作；你负责监督，并处理少数真正需要判断的遗留情况。
 
-1. **Preview first (dry run).** Show the user what *would* change before
-   touching anything. This builds trust and catches surprises.
+1. **先预览（dry run）。** 在动任何文件之前，先让用户看看*会*改什么。这能建立信任、
+   也能提前发现意外。
 
    ```bash
-   python3 <skill-dir>/scripts/fix_punctuation.py <target-path> --dry-run
+   python3 <skill-dir>/scripts/fix_punctuation.py <目标路径> --dry-run
    ```
 
-2. **Read the report.** Look at the before/after for each line. If something
-   looks wrong (a false positive — a mark that should have stayed half-width),
-   note it. The common offenders are listed under "Judgment calls" below.
+2. **看报告。** 逐行看 before/after。如果有哪里改错了（误报 —— 本该保留半角的被改了），
+   记下来。常见的误报类型见下面「复核步骤」一节。
 
-3. **Apply the fixes.** Drop `--dry-run` to write the changes in place. Add
-   `--json report.json` if you want a machine-readable record of every change.
+3. **应用修改。** 去掉 `--dry-run` 即可就地写入。需要机器可读的完整改动记录时加
+   `--json report.json`。
 
    ```bash
-   python3 <skill-dir>/scripts/fix_punctuation.py <target-path> --json /tmp/punct-report.json
+   python3 <skill-dir>/scripts/fix_punctuation.py <目标路径> --json /tmp/punct-report.json
    ```
 
-4. **Summarize for the user.** Tell them how many issues were fixed across how
-   many files, and call out anything you deliberately left alone or that needs
-   their eyes.
+4. **向用户汇报。** 告诉他们一共在多少个文件里修了多少处，并特别点出你刻意保留没动的、
+   或需要他们再确认的地方。
 
-If the target is under version control, mention that the user can `git diff` to
-review — that's the most natural way for them to verify a bulk edit.
+如果目标在版本控制下，提醒用户可以用 `git diff` 复查 —— 这是核对批量改动最自然的方式。
 
-## What the script fixes
+## 脚本会修正什么
 
-It converts a half-width mark to its full-width Chinese form **only when the
-mark sits in Chinese context** — i.e. a CJK character is its neighbor.
+只有当标点**处于中文上下文**时（即相邻有 CJK 汉字），才会把半角转成对应的全角。
 
-| Half-width | Full-width | Triggers when |
-|-----------|-----------|----------------|
-| `,` | `，` | adjacent to a CJK char (not between digits) |
-| `,` | `、` (顿号) | separating **3+ short CJK-only list items** (产品,渠道,服务) |
-| `.` | `。` | the preceding real char is CJK (not a decimal/version/ellipsis) |
-| `?` `!` | `？` `！` | adjacent to a CJK char |
-| `:` | `：` | the preceding real char is CJK (not a time like `12:30`) |
-| `;` | `；` | adjacent to a CJK char |
-| `"..."` | `“...”` | the pair surrounds or sits beside Chinese text *(prose only)* |
-| `'...'` | `‘...’` | the pair's content contains Chinese *(prose only)* |
-| `(...)` | `（...）` | the pair surrounds or sits beside Chinese text *(prose only)* |
-| `...` | `……` | adjacent to a CJK char (3+ dots) |
-| `--` `—` | `——` | adjacent to a CJK char |
-| `　` (full-width space) | ` ` | always normalized to a normal space |
+| 半角 | 全角 | 触发条件 |
+|-----|-----|----------|
+| `,` | `，` | 相邻有汉字（且不在数字之间） |
+| `,` | `、`（顿号） | 分隔**3 个及以上的纯中文短词**（产品,渠道,服务） |
+| `.` | `。` | 前一个实义字符是汉字（且不是小数 / 版本号 / 省略号） |
+| `?` `!` | `？` `！` | 相邻有汉字 |
+| `:` | `：` | 前一个实义字符是汉字（且不是 `12:30` 这种时间） |
+| `;` | `；` | 相邻有汉字 |
+| `"..."` | `“...”` | 引号对位于中文之中或紧邻中文 *（仅散文 / 非代码）* |
+| `'...'` | `‘...’` | 引号对内含中文 *（仅散文 / 非代码）* |
+| `(...)` | `（...）` | 括号对位于中文之中或紧邻中文 *（仅散文 / 非代码）* |
+| `...` | `……` | 相邻有汉字（3 个及以上的点） |
+| `--` `—` | `——` | 相邻有汉字 |
+| `　`（全角空格） | ` ` | 一律规范成普通空格 |
 
-A sentence-ending mark is also fixed when it sits **after a closing quote or
-bracket** whose content is Chinese — `他说"对".` becomes `他说“对”。`, because the
-script looks through the closer to find the real Chinese character behind it.
+句末标点如果**紧跟在右引号或右括号之后**，只要里面是中文也会被修正 —— `他说"对".`
+会变成 `他说“对”。`，因为脚本会「看穿」右引号、找到它背后真正的中文字符。
 
-## What it deliberately protects
+## 脚本绝不碰什么
 
-These are the false-positive traps. The script masks them out before doing
-anything, so they pass through untouched:
+下面这些是误报陷阱。脚本在动手之前会先把它们「屏蔽」掉，让它们原样穿过：
 
-- **Fenced code blocks** ```` ``` ```` / `~~~`, and **inline code** `` `...` ``
-- **URLs**, **emails**, and **file paths** (`a/b/c.ext`)
-- **HTML / XML tags** `<div>`
-- **Numbers**: `1,000` (thousands), `3.14` (decimals), `12:30` (time)
-- **English sentences**: with no CJK neighbor, nothing converts, so pure-English
-  text is left exactly as written
-- **Source-code syntax**: in code files (`.py`, `.js`, `.ts`, `.go`, `.json`,
-  etc.) the script fixes punctuation *inside* Chinese strings and comments but
-  leaves **straight quotes and parens alone** — converting a `"` string
-  delimiter to `“` or a `(` to `（` would break the code. Sentence punctuation
-  inside a Chinese string (e.g. `"你好，世界"`) is still fixed because it's
-  content, not syntax.
+- **围栏代码块** ```` ``` ```` / `~~~`，以及**行内代码** `` `...` ``
+- **URL**、**邮箱**、**文件路径**（`a/b/c.ext`）
+- **HTML / XML 标签** `<div>`
+- **数字**：`1,000`（千分位）、`3.14`（小数）、`12:30`（时间）
+- **英文句子**：没有汉字相邻时不会触发任何转换，所以纯英文文本原封不动
+- **源代码语法**：在代码文件里（`.py`、`.js`、`.ts`、`.go`、`.json` 等），脚本会修正
+  中文字符串和注释*内部*的标点，但**不动直引号和括号** —— 把字符串定界的 `"` 改成 `“`、
+  把 `(` 改成 `（` 都会破坏代码。中文字符串里的句子标点（如 `"你好，世界"` 里的逗号）
+  仍会修正，因为那是内容、不是语法。
 
-## The review pass — what the script can't decide alone
+## 复核步骤 —— 脚本无法独自判断的部分
 
-Some punctuation choices depend on **meaning**, not adjacency, so no regex can
-get them right every time. The script intentionally stays conservative on these
-and leaves them for you. After applying the script, **read the diff and apply
-judgment** to the following — this is where you add value the script can't:
+有些标点取决于**语义**而非相邻关系，任何正则都不可能每次都判断对。脚本对这些情况
+刻意保持保守，把它们留给你。应用脚本之后，**请阅读 diff 并运用判断力**处理下面这几类
+—— 这正是脚本做不到、而你能创造价值的地方：
 
-- **逗号 vs 顿号 (`，` vs `、`).** The script converts a comma to 顿号 only for
-  runs of 3+ short Chinese-only items, and backs off if a segment opens with a
-  clause word (因为/所以/但是…). It will still miss cases in both directions:
-  a two-item list (`苹果,香蕉` → it leaves `，`, but `、` may read better) or a
-  three-clause sentence that happens to look like a list. Skim list-like spots
-  and adjust. When unsure, `，` is the safe default — it's never *wrong*, just
-  sometimes less polished than `、`.
-- **A `？` that isn't really a question.** `有问题找管理员？` is a statement, not
-  a question — it should end in `。`. The script can't read intent, so it keeps
-  `？` wherever a question mark stood. Change rhetorical/declarative ones to `。`.
-- **A period after a Latin abbreviation that ends a Chinese sentence**, e.g.
-  `用的是 React.` — the script leaves a `.` whose previous real char is Latin
-  alone. If it clearly ends a Chinese sentence, change it to `。`.
-- **Mismatched or deeply nested parens/quotes** in messy prose — the script
-  handles one level of pairing; unbalanced marks may need a human.
+- **逗号 vs 顿号（`，` vs `、`）。** 脚本只在「3 个及以上的纯中文短词」连续时才转顿号，
+  且若某段以从句词（因为 / 所以 / 但是…）开头就退回逗号。它仍会在两个方向上漏判：
+  两项的列表（`苹果,香蕉` 会被保留为 `，`，但 `、` 可能更好看），或恰好长得像列表的
+  三个分句。请扫一眼像列表的地方再斟酌。拿不准时，`，` 是安全默认 —— 它从不会*错*，
+  只是有时不如 `、` 地道。
+- **不是真问句的 `？`。** `有问题找管理员？` 其实是陈述句，应该用 `。` 结尾。脚本读不出
+  意图，所以哪里原本是问号就保留 `？`。请把反问 / 陈述性的改成 `。`。
+- **中文句末、紧跟拉丁缩写的句号**，如 `用的是 React.` —— 脚本会保留前一个实义字符
+  是拉丁字母的 `.`。如果它明显是在结束一个中文句子，请改成 `。`。
+- **错配或多层嵌套的括号 / 引号**：脚本处理一层配对；不平衡的标记可能需要人来定。
 
-The division of labor is the point: the **script** does the high-volume,
-unambiguous conversions identically every time and never touches code/URLs/
-numbers; **you** handle the handful of meaning-dependent calls it flags. If the
-user reports a *systematic* false positive (not a one-off judgment call), prefer
-fixing the **script's rule** over hand-editing — that fix then helps at scale.
+分工才是关键：**脚本**负责高频、无歧义、每次都一模一样的批量转换，而且绝不碰
+代码 / URL / 数字；**你**负责它标记出来的、少数依赖语义的判断。如果用户报告的是
+*系统性*误报（不是个别判断），优先去改**脚本的规则**而不是手改文件 —— 这样的修复
+会在更大规模上持续起作用。
 
-## Options
+## 选项
 
 ```
---dry-run             Preview without writing. Always start here.
---json <file>         Write a full machine-readable change report.
---no-dash             Don't normalize "--" / "—" into "——".
---no-fullwidth-space  Leave full-width spaces (　) as-is.
---no-dunhao           Don't turn short comma lists (产品,渠道,服务) into 顿号 (、).
---include-all         Scan .git / node_modules / build dirs too (skipped by default).
+--dry-run             只预览不写入。务必先用这个。
+--json <文件>         写出完整的机器可读改动报告。
+--no-dash             不把 "--" / "—" 规范成 "——"。
+--no-fullwidth-space  保留全角空格（　）。
+--no-dunhao           不把短词逗号列表（产品,渠道,服务）转成顿号（、）。
+--include-all         连 .git / node_modules / build 等目录也扫描（默认跳过）。
 ```
 
-By default the scan **skips** version-control and dependency directories
-(`.git`, `node_modules`, `.venv`, `dist`, `build`, …) and binary file types
-(images, archives, fonts, office binaries other than `.docx`). It walks
-everything else recursively — nothing in scope is omitted.
+默认扫描会**跳过**版本控制与依赖目录（`.git`、`node_modules`、`.venv`、`dist`、`build`
+等）以及二进制文件类型（图片、压缩包、字体、除 `.docx` 外的 Office 二进制文件）。
+其余文件全部递归处理 —— 范围内的文件一个都不遗漏。
 
-## .docx files
+## .docx 文件
 
-The script edits Word documents directly: it rewrites the text inside the
-document's `<w:t>` runs (body, headers, footers) and repackages the `.docx`,
-leaving all formatting intact. The same context rules apply. Always `--dry-run`
-first so the user can confirm before a binary file is rewritten in place.
+脚本会直接编辑 Word 文档：改写文档 `<w:t>` 文本节点里的文字（正文、页眉、页脚）再重新
+打包成 `.docx`，所有格式保持不变。上下文规则完全一致。请务必先 `--dry-run`，让用户在
+就地改写一个二进制文件之前先确认。
 
-## A note on scope
+## 关于范围
 
-If the user points the skill at a large tree, the dry run can produce a long
-report. Summarize patterns ("most fixes were missing full-width commas in the
-docs/ folder") rather than dumping every line, and offer to apply.
+如果用户把技能指向一棵很大的目录树，dry run 可能产出很长的报告。请概括规律（如
+「大部分改动是 docs/ 目录里缺失的全角逗号」），而不是逐行罗列，并主动询问是否应用。

@@ -1,56 +1,52 @@
 # zan-punct-fix
 
-A Claude Code / agent **skill** that audits and fixes incorrect Chinese
-punctuation across every file in a folder — the classic artifact of
-AI-generated content, where half-width marks (`,` `.` `?` `!` `:` `;`, straight
-quotes, parens) get used where the full-width Chinese forms
-(`，` `。` `？` `！` `：` `；` `“”` `（）`) belong.
+一个面向 Claude Code / AI Agent 的**技能（skill）**，用来审查并修正文件夹中所有文件里
+用错的中文标点 —— 这是 AI 生成内容最典型的毛病：本该用全角的标点
+（`，` `。` `？` `！` `：` `；` `“”` `（）`）却写成了半角的 `,` `.` `?` `!` `:` `;`、
+直引号、半角括号。
 
-## What it does
+## 功能
 
-Recursively scans a path (text, code, and `.docx` files), converts half-width
-punctuation to the correct full-width form **only when it sits in Chinese
-context**, and reports every change.
+递归扫描一个路径（文本、代码和 `.docx` 文件），**只在标点处于中文上下文时**把半角转成
+正确的全角形式，并报告每一处改动。
 
-| Half-width | Full-width | When |
+| 半角 | 全角 | 触发条件 |
 |---|---|---|
-| `,` | `，` | next to a CJK char (not between digits) |
-| `,` | `、` (顿号) | separating 3+ short CJK list items (产品,渠道,服务) |
-| `.` | `。` | preceding real char is CJK (not a decimal/version) |
-| `? !` | `？！` | next to a CJK char |
-| `: ;` | `：；` | preceding char is CJK (not a time like `12:30`) |
-| `"…"` `'…'` `(…)` | `“…”` `‘…’` `（…）` | pair sits in Chinese text (prose only) |
-| `...` `-- —` | `……` `——` | next to a CJK char |
+| `,` | `，` | 相邻有汉字（且不在数字之间） |
+| `,` | `、`（顿号） | 分隔 3 个及以上的纯中文短词（产品,渠道,服务） |
+| `.` | `。` | 前一个实义字符是汉字（且不是小数 / 版本号） |
+| `? !` | `？！` | 相邻有汉字 |
+| `: ;` | `：；` | 前一个字符是汉字（且不是 `12:30` 这种时间） |
+| `"…"` `'…'` `(…)` | `“…”` `‘…’` `（…）` | 引号 / 括号对位于中文之中（仅散文，非代码） |
+| `...` `-- —` | `……` `——` | 相邻有汉字 |
 
-### What it protects (never touched)
+### 绝不会动的内容
 
-- Fenced/inline code, URLs, emails, file paths, HTML tags
-- Numbers: `1,000` (thousands), `3.14` (decimals), `12:30` (time)
-- Pure-English sentences (no CJK neighbor → no change)
-- **Source-code syntax**: in `.py`/`.js`/`.json`/… it fixes punctuation *inside*
-  Chinese strings and comments but leaves string-delimiter quotes and parens
-  alone, so it never breaks code.
+- 围栏代码块、行内代码、URL、邮箱、文件路径、HTML 标签
+- 数字：`1,000`（千分位）、`3.14`（小数）、`12:30`（时间）
+- 纯英文句子（没有汉字相邻 → 不改动）
+- **源代码语法**：在 `.py` / `.js` / `.json` 等文件里，会修正中文字符串和注释*内部*的标点，
+  但保留作为字符串定界的引号和括号，因此绝不会破坏代码。
 
-## Usage
+## 使用
 
 ```bash
-# Preview (recommended first)
-python3 scripts/fix_punctuation.py <path> --dry-run
+# 先预览（推荐）
+python3 scripts/fix_punctuation.py <路径> --dry-run
 
-# Apply + write a JSON report
-python3 scripts/fix_punctuation.py <path> --json report.json
+# 应用修改并写出 JSON 报告
+python3 scripts/fix_punctuation.py <路径> --json report.json
 ```
 
-Options: `--dry-run`, `--json FILE`, `--no-dash`, `--no-fullwidth-space`,
-`--no-dunhao`, `--include-all`. See `SKILL.md` for the full behavior spec and
-the meaning-dependent cases that are left for a human/LLM review pass.
+选项：`--dry-run`、`--json 文件`、`--no-dash`、`--no-fullwidth-space`、`--no-dunhao`、
+`--include-all`。完整的行为说明、以及需要由人 / 模型复核的依赖语义的情况，见 `SKILL.md`。
 
-## Install as a skill
+## 作为技能安装
 
-Clone into your skills directory:
+克隆到你的技能目录：
 
 ```bash
 git clone git@github.com:BolynWang/zan-punct-fix.git ~/.claude/skills/zan-punct-fix
 ```
 
-The agent triggers it on requests like “帮我检查这个文件夹的标点符号”.
+Agent 会在用户说出类似「帮我检查这个文件夹的标点符号」这样的请求时自动触发它。
