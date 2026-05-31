@@ -1,0 +1,32 @@
+{
+  "skill_name": "zan-punct-fix",
+  "evals": [
+    {
+      "id": 1,
+      "name": "single-markdown-article",
+      "prompt": "这篇文章是我用 AI 生成的，标点符号看着特别乱，半角逗号句号到处都是。帮我检查 article.md 并把中文标点改对，代码和链接别动。",
+      "expected_output": "article.md rewritten in place: half-width , . ? ! : ; converted to full-width in Chinese context; straight quotes/parens to full-width; ... -> ……; -- -> ——. The code block `const x = \"a,b,c\"`, the URL, Node.js, 1,200 and 3.5 must be UNCHANGED.",
+      "files": [
+        "inputs/eval1/article.md"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "mixed-folder-recursive",
+      "prompt": "这个文件夹里全是 AI 生成的东西，文档、代码、配置都有，中文标点很乱。帮我把整个文件夹扫一遍，所有文件的标点都检查改正，不要遗漏。",
+      "expected_output": "readme.md prose punctuation fixed. main.py: comma INSIDE the Chinese string \"张三,你好\" and in comments fixed to full-width, but the string-delimiter double quotes stay straight (code not broken); the shell command string left alone. config.json: the Chinese value '生产环境,谨慎操作' comma fixed, but 'db.internal,prod' (a value, ambiguous) and JSON structure intact.",
+      "files": [
+        "inputs/eval2/"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "docx-word-document",
+      "prompt": "这个 Word 报告 report.docx 里的中文标点是半角的，看着很不专业，帮我修正一下。",
+      "expected_output": "report.docx rewritten and still a valid openable docx; the text runs have full-width ， 。 ： （ ） ！ ？ in Chinese context; the '20%' percentage preserved.",
+      "files": [
+        "inputs/eval3/report.docx"
+      ]
+    }
+  ]
+}

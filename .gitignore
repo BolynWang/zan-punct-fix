@@ -1,0 +1,7 @@
+# OMC / runtime state that may get written inside the skill dir
+.omc/
+# python caches
+__pycache__/
+*.pyc
+# OS cruft
+.DS_Store

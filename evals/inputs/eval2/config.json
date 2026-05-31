@@ -1,0 +1,4 @@
+{
+  "host": "db.internal,prod",
+  "note": "生产环境,谨慎操作"
+}
