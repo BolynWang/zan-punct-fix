@@ -27,6 +27,16 @@
       "files": [
         "inputs/eval3/report.docx"
       ]
+    },
+    {
+      "id": 4,
+      "name": "code-syntax-preservation",
+      "prompt": "帮我修正这个文件夹里代码文件的中文标点（注释和中文字符串内的），但绝对不能改坏代码语法。",
+      "expected_output": "In .js/.py files, Chinese-string-delimiter quotes, brackets, and the trailing ; . , : after a closing quote/bracket MUST stay half-width (ASCII) so the code still parses. Only punctuation strictly inside Chinese comments/strings may change. A file with no such interior punctuation should yield ZERO changes.",
+      "files": [
+        "inputs/eval4/syntax.js",
+        "inputs/eval4/syntax.py"
+      ]
     }
   ]
 }

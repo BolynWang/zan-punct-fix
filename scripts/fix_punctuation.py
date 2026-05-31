@@ -125,7 +125,14 @@ PAIR_FULL = {',': '，', ';': '；', ':': '：', '!': '！', '?': '？'}
 # Closing marks that a sentence-ending punctuation can sit *after* while still
 # belonging to the Chinese sentence: e.g. 他说“好”。 or （注）。 — the real
 # content char is before the closer, so we look through these.
-CLOSERS = '“”‘’（）()「」『』《》【】〈〉""\'' + "'"
+#
+# IMPORTANT: only FULL-WIDTH / CJK closers belong here, never straight ASCII
+# " ' ) . In prose, quotes/parens are converted to full-width *before* the
+# char-by-char pass, so the closer we need to see through is already full-width.
+# In source code the straight delimiters stay as-is, and we must NOT look
+# through them — otherwise `"值";` would see the 值 inside and wrongly turn the
+# trailing ; . , into full-width, breaking the code.
+CLOSERS = '”’）」』》】〉〕｝'
 
 # A run of CJK characters, for enumeration (顿号) detection.
 CJK_CLASS = r'[一-鿿㐀-䶿豈-﫿]'
